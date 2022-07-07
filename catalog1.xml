@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<catalog xmlns="urn:oasis:names:tc:entity:xmlns:xml:catalog">
+    <system systemId="https://example.org/example.dtd" uri="example.dtd"/>
+    <systemSuffix systemIdSuffix="example.dtd" uri="example.dtd"/>
+    <public publicId="-//EXAMPLE//DTD v1//EN" uri="example.dtd"/>
+    <uri name="https://example.org/example-v1.dtd" uri="example.dtd"/>
+    <uriSuffix uriSuffix="example.dtd" uri="example.dtd"/>
+    <nextCatalog catalog="catalog2.xml"/>
+    <delegatePublic publicIdStartString="-//EXAMPLE//" catalog="catalog4.xml"/>
+    <delegateSystem systemIdStartString="C:\" catalog="catalog4.xml"/>
+    <delegateURI uriStartString="http://example.org/" catalog="catalog4.xml"/>
+    <rewriteSystem systemIdStartString="C:\" rewritePrefix="file:///C:/path/"/>
+    <rewriteURI uriStartString="C:\" rewritePrefix="file:///C:/path/"/>
+    <group xml:base="file:///C:/base1/">
+        <public publicId="-//EXAMPLE//DTD v2//EN" uri="example.dtd"/>
+        <public publicId="-//EXAMPLE//DTD v3//EN" uri="example.dtd" xml:base="file:///C:/base2/"/>
+    </group>
+</catalog>

@@ -1,0 +1,3 @@
+<!ELEMENT example (#PCDATA) >
+<!ATTLIST example att CDATA #FIXED "default">
+<!ENTITY eg "expansion from external DTD" >
