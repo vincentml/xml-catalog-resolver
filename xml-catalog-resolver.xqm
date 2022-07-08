@@ -6,6 +6,7 @@
  : May work in other XQuery processors.
  :
  : @author Vincent Lizzi
+ : @see https://github.com/vincentml/xml-catalog-resolver
  : @see https://basex.org/
  : @see https://docs.basex.org/wiki/Options#CATFILE
  : @see https://xmlresolver.org/
@@ -85,7 +86,7 @@ declare %private function resolver:regexEscapeString($string as xs:string) as xs
  : 
  : @see https://www.w3.org/TR/xml/#NT-doctypedecl
  :)
-declare function resolver:resolveDOCTYPE($xml as xs:string, $catfile as xs:string) {
+declare function resolver:resolveDOCTYPE($xml as xs:string, $catfile as xs:string) as xs:string {
   let $catalog := resolver:catalogEntries($catfile)
   
   let $re_space := '[&#x20;&#x9;&#xD;&#xA;]+'
