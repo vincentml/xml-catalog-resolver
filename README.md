@@ -1,14 +1,14 @@
 # XML Catalog Resolver in XQuery
 
-This module provides an XML Catalog Resolver in the XQuery programming language for use in [BaseX](https://basex.org/).
+This module provides an XML Catalog Resolver in the XQuery programming language. This module was created using [BaseX](https://basex.org/) version 9.7.3.
 
 ## Purpose
 
 XML documents frequently contain a DOCTYPE declaration or a URI that points to a location that, for one reason or another, needs to be resolved to different location. XML Catalogs provide a standard way of configuring how a DOCTYPE or URI should resolve to a location (defined as a URI). XML Catalogs are similar to URL redirects but with fewer moving parts and specific features for XML.
 
-XML Catalogs are super useful in a variety of scenarios. For example, if you are working with XML documents that contain a DOCTYPE that points to a URL that no longer exists or is on a slow remote server you can use an XML Catalog to resolve the DOCTYPE to a local copy of the DTD that you have saved. It is easy to create an XML Catalog file that contains DOCTYPEs and URIs mapped to locations that you specify, set a few configuration options to use the XML Catalog, and then the XML Catalog helpfully resolves DOCTYPEs and URIs to the locations you specified.
+XML Catalogs are super useful in a variety of scenarios. For example, if you are working with XML documents that contain a DOCTYPE that points to a DTD at a URL that no longer exists or is on a slow remote server you can use an XML Catalog to resolve the DOCTYPE to a local copy of the DTD that you have saved. It is easy to create an XML Catalog file that contains DOCTYPEs and URIs mapped to locations that you specify, set a few configuration options to use the XML Catalog, and then the XML Catalog helpfully resolves DOCTYPEs and URIs to the locations you specified.
 
-Unfortunately, getting XML Catalogs to work can sometimes be challenging. Java version 11 includes support for XML Catalogs, but older versions of Java (such as Java 8) require the addition of an XML Resolver and even then one may still find that XML Catalogs are not working. This XML Catalog Resolver XQuery module was created to work around problems with using XML Catalogs when running BaseX on older (or newer) versions of Java.
+Unfortunately, it can sometimes be challenging to get XML Catalogs to work. Java version 11 includes support for XML Catalogs, but older versions of Java (such as Java 8) require the addition of an XML Resolver and even then one may still find that XML Catalogs are not working. This XML Catalog Resolver XQuery module was created to work around problems with using XML Catalogs when running BaseX on older (or newer) versions of Java.
 
 ## Functions
 
@@ -55,15 +55,7 @@ Parameters:
 
 ## XML Catalog File Location
 
-The location of the XML Catalog file should be provided as an absolute file path.
-
-    C:\schemas\catalog.xml
-
-Multiple XML Catalog files can be used by providing a semicolon separated list of the file paths.
-
-    C:\schemas\catalog1.xml;C:\schemas\catalog2.xml
-
-An XML Catalog file can import other XML Catalog file(s) using elements `nextCatalog`, `delegatePublic`, `delegateSystem`, or `delegateURI`. This provides another way to use multiple XML Catalog files.
+The location of the XML Catalog file should be provided as an absolute file path. Multiple XML Catalog files can be used by providing a semicolon separated list of the file paths.
 
 The location of the XML Catalog file can be written in an XQuery just like any other string.
 
@@ -77,15 +69,19 @@ There are also several ways to configure the location of the XML Catalog file(s)
 - `xml.catalog.files` system property
 - `XML_CATALOG_FILES` environment variable
 
-The following example can be used to get the location of the XML Catalog file(s) from any one of the above that has a value.
+The following XQuery snippet can be used to get the location of the XML Catalog file(s) from any one of the above locations that has a value.
 
-    let $catfile := head((
-        db:option("catfile"),
-        proc:property("org.basex.catfile"),
-        proc:property("javax.xml.catalog.files"),
-        proc:property("xml.catalog.files"),
-        environment-variable("XML_CATALOG_FILES")
-        )[.])
+```xquery
+let $catfile := head((
+    db:option("catfile"),
+    proc:property("org.basex.catfile"),
+    proc:property("javax.xml.catalog.files"),
+    proc:property("xml.catalog.files"),
+    environment-variable("XML_CATALOG_FILES")
+    )[.])
+```
+
+An XML Catalog file can import other XML Catalog file(s) using elements `nextCatalog`, `delegatePublic`, `delegateSystem`, or `delegateURI`.
 
 ## Example usage
 
@@ -104,3 +100,10 @@ let $doc := "example.xml"
 
 return resolver:parse-xml($doc, $catfile)
 ```
+
+## Resources
+
+- https://docs.basex.org/wiki/Catalog_Resolver
+- https://xmlresolver.org/
+- https://xerces.apache.org/xml-commons/components/resolver/resolver-article.html
+- http://www.sagehill.net/docbookxsl/WriteCatalog.html
