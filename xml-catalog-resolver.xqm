@@ -20,6 +20,12 @@ import module namespace file = "http://expath.org/ns/file";
 (:~ Namespace for OASIS XML Catalogs :)
 declare namespace catalog = "urn:oasis:names:tc:entity:xmlns:xml:catalog";
 
+(:~ regular expression to match space characters in XML DOCTYPE :)
+declare variable $resolver:space := '[&#x20;&#x9;&#xD;&#xA;]+';
+
+(:~ regular expression to match the beginning of an XML DOCTYPE up to the root element name :)
+declare variable $resolver:doctype_start := '(<!DOCTYPE' || $resolver:space || '[:_A-Za-z&#xC0;-&#xD6;&#xD8;-&#xF6;&#xF8;-&#x2FF;&#x370;-&#x37D;&#x37F;-&#x1FFF;&#x200C;-&#x200D;&#x2070;-&#x218F;&#x2C00;-&#x2FEF;&#x3001;-&#xD7FF;&#xF900;-&#xFDCF;&#xFDF0;-&#xFFFD;&#x10000;-&#xEFFFF;][:_\.\-0-9A-Za-z&#xb7;&#x0300;-&#x036F;&#x203F;-&#x2040;&#xC0;-&#xD6;&#xD8;-&#xF6;&#xF8;-&#x2FF;&#x370;-&#x37D;&#x37F;-&#x1FFF;&#x200C;-&#x200D;&#x2070;-&#x218F;&#x2C00;-&#x2FEF;&#x3001;-&#xD7FF;&#xF900;-&#xFDCF;&#xFDF0;-&#xFFFD;&#x10000;-&#xEFFFF;]*' || $resolver:space || ')';
+
 
 (:~ 
  : Parse XML Catalog and return a list of all catalog entries with URIs expanded.
@@ -32,7 +38,7 @@ declare namespace catalog = "urn:oasis:names:tc:entity:xmlns:xml:catalog";
  :)
 declare function resolver:catalogEntries($catfile as xs:string) as element()* {
   for $cat in tokenize($catfile, ';\s*') return
-  let $catalog := doc(file:resolve-path($cat))
+  let $catalog := (# db:dtd false #) (# db:intparse true #) { doc(file:resolve-path($cat)) }
   let $catparent := file:parent($cat)
   for $e in $catalog//catalog:*
   let $base := 
@@ -82,39 +88,36 @@ declare %private function resolver:regexEscapeString($string as xs:string) as xs
  : @param $xml XML as a string
  : @param $catfile Semicolon-separated list of XML catalog files. Absolute file path works best. 
  :
- : @return XML string with DOCTYPE resolved using the XML Catalog. If no mapping is found then the string is returnd unchanged.
+ : @return XML string with DOCTYPE resolved using the XML Catalog. If no mapping is found then the string is returned unchanged.
  : 
  : @see https://www.w3.org/TR/xml/#NT-doctypedecl
  :)
 declare function resolver:resolveDOCTYPE($xml as xs:string, $catfile as xs:string) as xs:string {
   let $catalog := resolver:catalogEntries($catfile)
-  
-  let $re_space := '[&#x20;&#x9;&#xD;&#xA;]+'
-  let $re_start := '(<!DOCTYPE' || $re_space || '[:_A-Za-z&#xC0;-&#xD6;&#xD8;-&#xF6;&#xF8;-&#x2FF;&#x370;-&#x37D;&#x37F;-&#x1FFF;&#x200C;-&#x200D;&#x2070;-&#x218F;&#x2C00;-&#x2FEF;&#x3001;-&#xD7FF;&#xF900;-&#xFDCF;&#xFDF0;-&#xFFFD;&#x10000;-&#xEFFFF;][:_\.\-0-9A-Za-z&#xb7;&#x0300;-&#x036F;&#x203F;-&#x2040;&#xC0;-&#xD6;&#xD8;-&#xF6;&#xF8;-&#x2FF;&#x370;-&#x37D;&#x37F;-&#x1FFF;&#x200C;-&#x200D;&#x2070;-&#x218F;&#x2C00;-&#x2FEF;&#x3001;-&#xD7FF;&#xF900;-&#xFDCF;&#xFDF0;-&#xFFFD;&#x10000;-&#xEFFFF;]*' || $re_space || ')'
-  
+    
   return fold-left($catalog, $xml, function($x, $c) {
     typeswitch ($c)
     case element(catalog:public) return 
       let $public := resolver:regexEscapeString($c/@publicId)
-      let $match := $re_start || 'PUBLIC'  || $re_space || '("' || $public || '"|' || "'" || $public || "')"  || $re_space || "('[^']*'|" || '"[^"]*")'
+      let $match := $resolver:doctype_start || 'PUBLIC'  || $resolver:space || '("' || $public || '"|' || "'" || $public || "')"  || $resolver:space || "('[^']*'|" || '"[^"]*")'
       let $replace := '$1PUBLIC $2 "' || $c/@uri || '"'
       return replace($x, $match, $replace)
       
     case element(catalog:system) return
       let $system := resolver:regexEscapeString($c/@systemId)
-      let $match := $re_start || "(PUBLIC" || $re_space || "(?:'[^']*'|""[^""]*"")|SYSTEM)" || $re_space || "('" || $system || "'|""" || $system || """)"
+      let $match := $resolver:doctype_start || "(PUBLIC" || $resolver:space || "(?:'[^']*'|""[^""]*"")|SYSTEM)" || $resolver:space || "('" || $system || "'|""" || $system || """)"
       let $replace := '$1$2 "' || $c/@uri || '"'
       return replace($x, $match, $replace)
       
     case element(catalog:systemSuffix) return
       let $system := resolver:regexEscapeString($c/@systemIdSuffix)
-      let $match := $re_start || "(PUBLIC" || $re_space || "(?:'[^']*'|""[^""]*"")|SYSTEM)" || $re_space || "('[^']*" || $system || "'|""[^""]*" || $system || """)"
+      let $match := $resolver:doctype_start || "(PUBLIC" || $resolver:space || "(?:'[^']*'|""[^""]*"")|SYSTEM)" || $resolver:space || "('[^']*" || $system || "'|""[^""]*" || $system || """)"
       let $replace := '$1$2 "' || $c/@uri || '"'
       return replace($x, $match, $replace)
       
     case element(catalog:rewriteSystem) return
       let $system := resolver:regexEscapeString($c/@systemIdStartString)
-      let $match := $re_start || "(PUBLIC" || $re_space || "(?:'[^']*'|""[^""]*"")|SYSTEM)" || $re_space || "(?:'" || $system || "([^']*)'|""" || $system || "([^""]*)"")"
+      let $match := $resolver:doctype_start || "(PUBLIC" || $resolver:space || "(?:'[^']*'|""[^""]*"")|SYSTEM)" || $resolver:space || "(?:'" || $system || "([^']*)'|""" || $system || "([^""]*)"")"
       let $replace := '$1$2 "' || $c/@rewritePrefix || '$3$4"'
       return replace($x, $match, $replace)
 
@@ -167,6 +170,27 @@ declare function resolver:parse-xml($xml as xs:string, $catfile as xs:string) as
     (# db:dtd true #) (# db:intparse false #) (# db:chop false #) { doc($temp) },
     file:delete($temp)
   )
+};
+
+
+(:~
+ : Modifies a DOCTYPE to remove a PUBLIC or SYSTEM reference to an external DTD.
+ : If the DOCTYPE contains an internal DTD then the internal part will remain intact.
+ : The intention for this function is to prevent loading an external DTD when it is
+ : known that the DTD is not needed, and mainly for parsing XML Catalogs.
+ : With BaseX parsing options set to INTPARSE=true and DTD=false this function is not needed.
+ :
+ : @param $xml XML as a string
+ :
+ : @return XML string with the DOCTYPE modified. If no PUBLIC or SYSTEM reference is present then the string is returned unchanged.
+ : 
+ : @see https://www.w3.org/TR/xml/#NT-doctypedecl
+ : @see https://docs.basex.org/wiki/Options#INTPARSE
+ : @see https://docs.basex.org/wiki/Options#DTD
+ :)
+declare function resolver:removeExternalDTD($xml as xs:string) as xs:string {
+  let $match := $resolver:doctype_start || "(PUBLIC" || $resolver:space || "(?:'[^']*'|""[^""]*"")|SYSTEM)" || $resolver:space || "(?:'[^']*'|""[^""]*"")"
+  return replace($xml, $match, "$1")
 };
 
 
@@ -292,4 +316,22 @@ declare %unit:test function resolver:test_parse-xml() {
   let $examplexml := file:resolve-path("example.xml", $base)
   let $result := resolver:parse-xml($examplexml, $catfile)
   return unit:assert-equals($result, document{<example att="default">expansion from external DTD</example>})
+};
+
+
+declare %unit:test function resolver:test_removeExternalDTD() {
+  let $example := '<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE catalog PUBLIC "-//OASIS//DTD Entity Resolution XML Catalog V1.0//EN" "http://www.oasis-open.org/committees/entity/release/1.0/catalog.dtd" []><catalog xmlns="urn:oasis:names:tc:entity:xmlns:xml:catalog"><uri name="https://example.com/file.txt" uri="file.txt"/></catalog>'
+  let $expected := '<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE catalog  []><catalog xmlns="urn:oasis:names:tc:entity:xmlns:xml:catalog"><uri name="https://example.com/file.txt" uri="file.txt"/></catalog>'
+  let $result := resolver:removeExternalDTD($example)
+  return unit:assert-equals($result, $expected),
+  
+  let $example := '<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE catalog SYSTEM "http://www.oasis-open.org/committees/entity/release/1.0/catalog.dtd" []><catalog xmlns="urn:oasis:names:tc:entity:xmlns:xml:catalog"><uri name="https://example.com/file.txt" uri="file.txt"/></catalog>'
+  let $expected := '<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE catalog  []><catalog xmlns="urn:oasis:names:tc:entity:xmlns:xml:catalog"><uri name="https://example.com/file.txt" uri="file.txt"/></catalog>'
+  let $result := resolver:removeExternalDTD($example)
+  return unit:assert-equals($result, $expected),
+  
+  let $example := '<?xml version="1.0" encoding="UTF-8"?><catalog xmlns="urn:oasis:names:tc:entity:xmlns:xml:catalog"><uri name="https://example.com/file.txt" uri="file.txt"/></catalog>'
+  let $expected := '<?xml version="1.0" encoding="UTF-8"?><catalog xmlns="urn:oasis:names:tc:entity:xmlns:xml:catalog"><uri name="https://example.com/file.txt" uri="file.txt"/></catalog>'
+  let $result := resolver:removeExternalDTD($example)
+  return unit:assert-equals($result, $expected)
 };
