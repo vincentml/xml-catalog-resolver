@@ -1,0 +1,30 @@
+plugins {
+  id "java"
+}
+
+repositories {
+  mavenCentral()
+  maven {
+    url "https://files.basex.org/maven"
+  }
+}
+
+def basexVersion = System.getenv('BASEX_VERSION') ?: "9.7.3"
+
+dependencies {
+  runtimeOnly "org.basex:basex:${basexVersion}"
+}
+
+defaultTasks "test"
+
+task testXQuery(type: JavaExec) {
+  description "Run all XQuery Unit Tests in BaseX"
+  classpath configurations.runtimeClasspath
+  mainClass = "org.basex.BaseX"
+  systemProperties System.getProperties()
+  args "-t", file(".")
+}
+
+test.dependsOn "testXQuery"
+
+
