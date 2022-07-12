@@ -40,7 +40,7 @@ declare function resolver:catalogEntries($catfile as xs:string) as element()* {
   for $cat in tokenize($catfile, ';\s*') return
   let $catalog := (# db:dtd false #) (# db:intparse true #) { doc(file:resolve-path($cat)) }
   let $catparent := file:parent($cat)
-  for $e in $catalog//catalog:*
+  for $e in $catalog//*
   let $base := 
     if ($e/ancestor-or-self::catalog:*/@xml:base) 
     then ($e/ancestor-or-self::catalog:*/@xml:base)[last()]/string() 
@@ -200,6 +200,8 @@ declare %unit:test function resolver:test_catalogEntries() {
   let $exampledtd := file:path-to-uri(file:resolve-path("example.dtd", $base))
   let $entries := resolver:catalogEntries($catfile)
   return (
+    prof:dump($catfile, 'catfile: '),
+    prof:dump($entries, 'entries: '),
     unit:assert-equals($entries[1], <catalog:system systemId="https://example.org/example.dtd" uri="{$exampledtd}"/>),
     unit:assert-equals($entries[2], <catalog:systemSuffix systemIdSuffix="example.dtd" uri="{$exampledtd}"/>),
     unit:assert-equals($entries[3], <catalog:public publicId="-//EXAMPLE//DTD v1//EN" uri="{$exampledtd}"/>),
