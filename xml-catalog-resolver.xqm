@@ -196,8 +196,8 @@ declare function resolver:removeExternalDTD($xml as xs:string) as xs:string {
 
 declare %unit:test function resolver:test_catalogEntries() {
   let $base := file:base-dir()
-  let $catfile := file:resolve-path("catalog1.xml", $base)
-  let $exampledtd := file:path-to-uri(file:resolve-path("example.dtd", $base))
+  let $catfile := file:resolve-path("test/catalog1.xml", $base)
+  let $exampledtd := file:path-to-uri(file:resolve-path("test/example.dtd", $base))
   let $entries := resolver:catalogEntries($catfile)
   return (
     prof:dump($catfile, 'catfile: '),
@@ -221,8 +221,8 @@ declare %unit:test function resolver:test_catalogEntries() {
 
 declare %unit:test function resolver:test_resolveDOCTYPE() {
   let $base := file:base-dir()
-  let $catfile := file:resolve-path("catalog1.xml", $base)
-  let $exampledtd := file:path-to-uri(file:resolve-path("example.dtd", $base))
+  let $catfile := file:resolve-path("test/catalog1.xml", $base)
+  let $exampledtd := file:path-to-uri(file:resolve-path("test/example.dtd", $base))
   return (
     let $xml := '<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE example PUBLIC "-//EXAMPLE//DTD v1//EN" "not-mapped"><example/>'
     let $exp := '<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE example PUBLIC "-//EXAMPLE//DTD v1//EN" "' || $exampledtd || '"><example/>'
@@ -290,8 +290,8 @@ declare %unit:test function resolver:test_resolveDOCTYPE() {
 
 declare %unit:test function resolver:test_resolveURI() {
   let $base := file:base-dir()
-  let $catfile := file:resolve-path("catalog1.xml", $base)
-  let $exampledtd := file:path-to-uri(file:resolve-path("example.dtd", $base))
+  let $catfile := file:resolve-path("test/catalog1.xml", $base)
+  let $exampledtd := file:path-to-uri(file:resolve-path("test/example.dtd", $base))
   return (
     let $uri := "https://example.org/example-v1.dtd"
     let $result := resolver:resolveURI($uri, $catfile)
@@ -314,8 +314,8 @@ declare %unit:test function resolver:test_resolveURI() {
 
 declare %unit:test function resolver:test_parse-xml() {
   let $base := file:base-dir()
-  let $catfile := file:resolve-path("catalog1.xml", $base)
-  let $examplexml := file:resolve-path("example.xml", $base)
+  let $catfile := file:resolve-path("test/catalog1.xml", $base)
+  let $examplexml := file:resolve-path("test/example.xml", $base)
   let $result := resolver:parse-xml($examplexml, $catfile)
   return unit:assert-equals($result, document{<example att="default">expansion from external DTD</example>})
 };

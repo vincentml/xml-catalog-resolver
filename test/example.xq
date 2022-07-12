@@ -1,4 +1,4 @@
-import module namespace resolver = "xml-catalog-resolver" at "xml-catalog-resolver.xqm";
+import module namespace resolver = "xml-catalog-resolver" at "../xml-catalog-resolver.xqm";
 
 declare variable $file external := "example.xml";
 
