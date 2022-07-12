@@ -17,6 +17,8 @@ dependencies {
 
 defaultTasks "test"
 
+System.setProperty("org.basex.path", "${projectDir}") // BaseX home directory set to project location
+
 task testXQuery(type: JavaExec) {
   description "Run all XQuery Unit Tests in BaseX"
   classpath configurations.runtimeClasspath
@@ -28,3 +30,14 @@ task testXQuery(type: JavaExec) {
 test.dependsOn "testXQuery"
 
 
+task basex {
+  description "Run BaseX GUI"
+  doLast {
+    ant.java(
+        fork: true, 
+        spawn: true, 
+        classpath: configurations.runtimeClasspath.asPath, 
+        classname: "org.basex.BaseXGUI",
+        clonevm: true)
+  }
+}

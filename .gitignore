@@ -3,3 +3,10 @@
 
 # Ignore Gradle build output directory
 build
+
+# BaseX
+data/**
+repo/**
+.basex
+.basexgui
+.basexhistory
