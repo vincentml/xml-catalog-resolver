@@ -61,6 +61,10 @@ The location of the XML Catalog file can be written in an XQuery just like any o
 
     let $catfile := "C:\schemas\catalog.xml"
 
+The absolute path to the catalog file can be determined relative to an XQuery file. The [File module](https://docs.basex.org/wiki/File_Module) provides functions that can help with identifying an absolute file path, for example:
+
+    let $catfile := file:resolve-path('schemas/catalog.xml', file:base-dir())
+
 There are also several ways to configure the location of the XML Catalog file(s) using BaseX configuration, Java system properties, and environment variables. With all of these methods, the value should be a semicolon separated list of absolute file paths.
 
 - [catfile](https://docs.basex.org/wiki/Options#CATFILE) BaseX configuration option
