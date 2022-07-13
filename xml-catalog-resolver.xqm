@@ -75,7 +75,7 @@ declare %private function resolver:expandUri($entry as element(), $base as xs:st
 
 
 declare %private function resolver:regexEscapeString($string as xs:string) as xs:string {
-  $string => replace("\\", "\\\\")
+  $string => replace("([\|\\\{\}\(\)\[\]\^\$\+\*\?\.])", "\\$1")
 };
 
 
@@ -191,6 +191,11 @@ declare function resolver:parse-xml($xml as xs:string, $catfile as xs:string) as
 declare function resolver:removeExternalDTD($xml as xs:string) as xs:string {
   let $match := $resolver:doctype_start || "(PUBLIC" || $resolver:space || "(?:'[^']*'|""[^""]*"")|SYSTEM)" || $resolver:space || "(?:'[^']*'|""[^""]*"")"
   return replace($xml, $match, "$1")
+};
+
+
+declare %unit:test function resolver:test_regexEscapeString() {
+  unit:assert-equals(resolver:regexEscapeString("\ ^ $ * + ? . ( ) | { } [ ]"), "\\ \^ \$ \* \+ \? \. \( \) \| \{ \} \[ \]")
 };
 
 
