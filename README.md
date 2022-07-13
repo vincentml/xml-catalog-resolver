@@ -20,12 +20,12 @@ Resolves the DOCTYPE declaration in an XML file using the XML Catalog. If the XM
 
 Signature:
 
-    resolver:resolveDOCTYPE($xml as xs:string, $catfile as xs:string) as xs:string
+    resolver:resolveDOCTYPE($xml as xs:string, $catalog as xs:string) as xs:string
 
 Parameters:
 
 - $xml - XML document as a string
-- $catfile - location of the XML Catalog file(s)
+- $catalog - location of the XML Catalog file(s)
 
 ### resolveURI
 
@@ -33,12 +33,12 @@ Resolves a URI using the XML Catalog. If the URI matches an entry in the XML Cat
 
 Signature:
 
-    resolver:resolveURI($uri as xs:string, $catfile as xs:string) as xs:string
+    resolver:resolveURI($uri as xs:string, $catalog as xs:string) as xs:string
 
 Parameters:
 
 - $uri - the URI to resolve
-- $catfile - location of the XML Catalog file(s)
+- $catalog - location of the XML Catalog file(s)
 
 ### parse-xml
 
@@ -46,12 +46,12 @@ Resolves the DOCTYPE declaration in an XML file using the XML Catalog and then p
 
 Signature:
 
-    resolver:parse-xml($xml as xs:string, $catfile as xs:string) as document-node()
+    resolver:parse-xml($xml as xs:string, $catalog as xs:string) as document-node()
 
 Parameters:
 
 - $xml - XML document as a string or a URI to an XML document
-- $catfile - location of the XML Catalog file(s)
+- $catalog - location of the XML Catalog file(s)
 
 ## XML Catalog File Location
 
@@ -59,11 +59,11 @@ The location of the XML Catalog file should be provided as an absolute file path
 
 The location of the XML Catalog file can be written in an XQuery just like any other string.
 
-    let $catfile := "C:\schemas\catalog.xml"
+    let $catalog := "C:\schemas\catalog.xml"
 
 The absolute path to the catalog file can be determined relative to an XQuery file. The [File module](https://docs.basex.org/wiki/File_Module) provides functions that can help with identifying an absolute file path, for example:
 
-    let $catfile := file:resolve-path('schemas/catalog.xml', file:base-dir())
+    let $catalog := file:resolve-path('schemas/catalog.xml', file:base-dir())
 
 There are also several ways to configure the location of the XML Catalog file(s) using BaseX configuration, Java system properties, and environment variables. With all of these methods, the value should be a semicolon separated list of absolute file paths.
 
@@ -76,7 +76,7 @@ There are also several ways to configure the location of the XML Catalog file(s)
 The following XQuery snippet can be used to get the location of the XML Catalog file(s) from any one of the above locations that has a value.
 
 ```xquery
-let $catfile := head((
+let $catalog := head((
     db:option("catfile"),
     proc:property("org.basex.catfile"),
     proc:property("javax.xml.catalog.files"),
@@ -92,7 +92,7 @@ An XML Catalog file can import other XML Catalog file(s) using elements `nextCat
 ```xquery
 import module namespace resolver = "xml-catalog-resolver" at "https://raw.githubusercontent.com/vincentml/xml-catalog-resolver/main/xml-catalog-resolver.xqm";
 
-let $catfile := head((
+let $catalog := head((
     db:option("catfile"),
     proc:property("org.basex.catfile"),
     proc:property("javax.xml.catalog.files"),
@@ -102,7 +102,7 @@ let $catfile := head((
     
 let $doc := "example.xml"
 
-return resolver:parse-xml($doc, $catfile)
+return resolver:parse-xml($doc, $catalog)
 ```
 
 ## Resources

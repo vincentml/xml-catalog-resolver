@@ -32,15 +32,15 @@ declare variable $resolver:doctype_start := '(<!DOCTYPE' || $resolver:space || '
  : URI expansion will be based on file paths relative to the XML Catalog file or 
  : the @xml:base attribute if present in the XML Catalog. 
  :
- : @param $catfile Semicolon-separated list of XML catalog files. Absolute file path works best. 
+ : @param $catalog Semicolon-separated list of XML catalog files. Absolute file path works best. 
  :
  : @return Sequence of all entries from all XML Catalogs that were loaded.
  :)
-declare function resolver:catalogEntries($catfile as xs:string) as element()* {
-  for $cat in tokenize($catfile, ';\s*') return
-  let $catalog := (# db:dtd false #) (# db:intparse true #) { doc(file:resolve-path($cat)) }
+declare function resolver:catalogEntries($catalog as xs:string) as element()* {
+  for $cat in tokenize($catalog, ';\s*') return
+  let $catxml := (# db:dtd false #) (# db:intparse true #) { doc(file:resolve-path($cat)) }
   let $catparent := file:parent($cat)
-  for $e in $catalog//*
+  for $e in $catxml//*
   let $base := 
     if ($e/ancestor-or-self::catalog:*/@xml:base) 
     then ($e/ancestor-or-self::catalog:*/@xml:base)[last()]/string() 
@@ -86,16 +86,16 @@ declare %private function resolver:regexEscapeString($string as xs:string) as xs
  : No attempt has been made to skip text that looks like a DOCTYPE but isn't, such as a DOCTYPE that is inside a comment.
  :
  : @param $xml XML as a string
- : @param $catfile Semicolon-separated list of XML catalog files. Absolute file path works best. 
+ : @param $catalog Semicolon-separated list of XML catalog files. Absolute file path works best. 
  :
  : @return XML string with DOCTYPE resolved using the XML Catalog. If no mapping is found then the string is returned unchanged.
  : 
  : @see https://www.w3.org/TR/xml/#NT-doctypedecl
  :)
-declare function resolver:resolveDOCTYPE($xml as xs:string, $catfile as xs:string) as xs:string {
-  let $catalog := resolver:catalogEntries($catfile)
+declare function resolver:resolveDOCTYPE($xml as xs:string, $catalog as xs:string) as xs:string {
+  let $cat := resolver:catalogEntries($catalog)
     
-  return fold-left($catalog, $xml, function($x, $c) {
+  return fold-left($cat, $xml, function($x, $c) {
     typeswitch ($c)
     case element(catalog:public) return 
       let $public := resolver:regexEscapeString($c/@publicId)
@@ -130,13 +130,13 @@ declare function resolver:resolveDOCTYPE($xml as xs:string, $catfile as xs:strin
  : Resolve a URI using XML Catalog.
  : 
  : @param $uri The URI to resolve
- : @param $catfile Semicolon-separated list of XML catalog files. Absolute file path works best.
+ : @param $catalog Semicolon-separated list of XML catalog files. Absolute file path works best.
  : 
  : @return The resolved URI. If no mapping is found in the XML Catalog the URI will be returned unchanged.
  :)
-declare function resolver:resolveURI($uri as xs:string, $catfile as xs:string) as xs:string {
-  let $catalog := resolver:catalogEntries($catfile)
-  return fold-left($catalog, $uri, function($x, $c) {
+declare function resolver:resolveURI($uri as xs:string, $catalog as xs:string) as xs:string {
+  let $cat := resolver:catalogEntries($catalog)
+  return fold-left($cat, $uri, function($x, $c) {
     typeswitch ($c)
     case element(catalog:uri) return 
       if ($c/@name eq $uri) then string($c/@uri) else $x
@@ -157,14 +157,14 @@ declare function resolver:resolveURI($uri as xs:string, $catfile as xs:string) a
  : Parse XML using XML Catalog
  :
  : @param $xml an XML string or file path to the XML file
- : @param $catfile Semicolon-separated list of XML catalog files. Absolute file path works best.
+ : @param $catalog Semicolon-separated list of XML catalog files. Absolute file path works best.
  :
  : @return parsed XML document
  :)
-declare function resolver:parse-xml($xml as xs:string, $catfile as xs:string) as document-node() {
+declare function resolver:parse-xml($xml as xs:string, $catalog as xs:string) as document-node() {
   let $temp := file:create-temp-file('catalog-resolver', '.xml')
   let $raw := if ($xml castable as xs:anyURI) then unparsed-text($xml) else $xml
-  let $resolved := resolver:resolveDOCTYPE($raw, $catfile)
+  let $resolved := resolver:resolveDOCTYPE($raw, $catalog)
   return (
     file:write-text($temp, $resolved),
     (# db:dtd true #) (# db:intparse false #) (# db:chop false #) { doc($temp) },
@@ -201,9 +201,9 @@ declare %unit:test function resolver:test_regexEscapeString() {
 
 declare %unit:test function resolver:test_catalogEntries() {
   let $base := file:base-dir()
-  let $catfile := file:resolve-path("test/catalog1.xml", $base)
+  let $catalog := file:resolve-path("test/catalog1.xml", $base)
   let $exampledtd := file:path-to-uri(file:resolve-path("test/example.dtd", $base))
-  let $entries := resolver:catalogEntries($catfile)
+  let $entries := resolver:catalogEntries($catalog)
   return (
     unit:assert-equals($entries[1], <catalog:system systemId="https://example.org/example.dtd" uri="{$exampledtd}"/>),
     unit:assert-equals($entries[2], <catalog:systemSuffix systemIdSuffix="example.dtd" uri="{$exampledtd}"/>),
@@ -224,67 +224,67 @@ declare %unit:test function resolver:test_catalogEntries() {
 
 declare %unit:test function resolver:test_resolveDOCTYPE() {
   let $base := file:base-dir()
-  let $catfile := file:resolve-path("test/catalog1.xml", $base)
+  let $catalog := file:resolve-path("test/catalog1.xml", $base)
   let $exampledtd := file:path-to-uri(file:resolve-path("test/example.dtd", $base))
   return (
     let $xml := '<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE example PUBLIC "-//EXAMPLE//DTD v1//EN" "not-mapped"><example/>'
     let $exp := '<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE example PUBLIC "-//EXAMPLE//DTD v1//EN" "' || $exampledtd || '"><example/>'
-    let $result := resolver:resolveDOCTYPE($xml, $catfile)
+    let $result := resolver:resolveDOCTYPE($xml, $catalog)
     return unit:assert-equals($result, $exp, 'public'),
     
     let $xml := '<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE example PUBLIC ''-//EXAMPLE//DTD v1//EN'' ''not-mapped''><example/>'
     let $exp := '<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE example PUBLIC ''-//EXAMPLE//DTD v1//EN'' "' || $exampledtd || '"><example/>'
-    let $result := resolver:resolveDOCTYPE($xml, $catfile)
+    let $result := resolver:resolveDOCTYPE($xml, $catalog)
     return unit:assert-equals($result, $exp, 'public'),
     
     let $xml := '<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE example PUBLIC "-//EXAMPLE//not mapped//EN" "https://example.org/example.dtd"><example/>'
     let $exp := '<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE example PUBLIC "-//EXAMPLE//not mapped//EN" "' || $exampledtd || '"><example/>'
-    let $result := resolver:resolveDOCTYPE($xml, $catfile)
+    let $result := resolver:resolveDOCTYPE($xml, $catalog)
     return unit:assert-equals($result, $exp, 'system'),
     
     let $xml := '<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE example PUBLIC ''-//EXAMPLE//not mapped//EN'' ''https://example.org/example.dtd''><example/>'
     let $exp := '<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE example PUBLIC ''-//EXAMPLE//not mapped//EN'' "' || $exampledtd || '"><example/>'
-    let $result := resolver:resolveDOCTYPE($xml, $catfile)
+    let $result := resolver:resolveDOCTYPE($xml, $catalog)
     return unit:assert-equals($result, $exp, 'system'),
     
     let $xml := '<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE example SYSTEM "https://example.org/example.dtd"><example/>'
     let $exp := '<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE example SYSTEM "' || $exampledtd || '"><example/>'
-    let $result := resolver:resolveDOCTYPE($xml, $catfile)
+    let $result := resolver:resolveDOCTYPE($xml, $catalog)
     return unit:assert-equals($result, $exp, 'system'),
     
     let $xml := '<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE example SYSTEM ''https://example.org/example.dtd''><example/>'
     let $exp := '<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE example SYSTEM "' || $exampledtd || '"><example/>'
-    let $result := resolver:resolveDOCTYPE($xml, $catfile)
+    let $result := resolver:resolveDOCTYPE($xml, $catalog)
     return unit:assert-equals($result, $exp, 'system'),
     
     let $xml := '<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE example PUBLIC "-//EXAMPLE//not mapped//EN" "path/to/example.dtd"><example/>'
     let $exp := '<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE example PUBLIC "-//EXAMPLE//not mapped//EN" "' || $exampledtd || '"><example/>'
-    let $result := resolver:resolveDOCTYPE($xml, $catfile)
+    let $result := resolver:resolveDOCTYPE($xml, $catalog)
     return unit:assert-equals($result, $exp, 'systemSuffix'),
     
     let $xml := '<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE example PUBLIC ''-//EXAMPLE//not mapped//EN'' ''path/to/example.dtd''><example/>'
     let $exp := '<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE example PUBLIC ''-//EXAMPLE//not mapped//EN'' "' || $exampledtd || '"><example/>'
-    let $result := resolver:resolveDOCTYPE($xml, $catfile)
+    let $result := resolver:resolveDOCTYPE($xml, $catalog)
     return unit:assert-equals($result, $exp, 'systemSuffix'),
     
     let $xml := '<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE example SYSTEM "path/to/example.dtd"><example/>'
     let $exp := '<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE example SYSTEM "' || $exampledtd || '"><example/>'
-    let $result := resolver:resolveDOCTYPE($xml, $catfile)
+    let $result := resolver:resolveDOCTYPE($xml, $catalog)
     return unit:assert-equals($result, $exp, 'systemSuffix'),
     
     let $xml := '<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE example SYSTEM ''path/to/example.dtd''><example/>'
     let $exp := '<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE example SYSTEM "' || $exampledtd || '"><example/>'
-    let $result := resolver:resolveDOCTYPE($xml, $catfile)
+    let $result := resolver:resolveDOCTYPE($xml, $catalog)
     return unit:assert-equals($result, $exp, 'systemSuffix'),
 
     let $xml := '<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE example PUBLIC "-//EXAMPLE//not mapped//EN" "C:\another.dtd"><example/>'
     let $exp := '<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE example PUBLIC "-//EXAMPLE//not mapped//EN" "file:///C:/path/another.dtd"><example/>'
-    let $result := resolver:resolveDOCTYPE($xml, $catfile)
+    let $result := resolver:resolveDOCTYPE($xml, $catalog)
     return unit:assert-equals($result, $exp, 'rewriteSystem'),
     
     let $xml := '<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE example SYSTEM "C:\another.dtd"><example/>'
     let $exp := '<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE example SYSTEM "file:///C:/path/another.dtd"><example/>'
-    let $result := resolver:resolveDOCTYPE($xml, $catfile)
+    let $result := resolver:resolveDOCTYPE($xml, $catalog)
     return unit:assert-equals($result, $exp, 'rewriteSystem')
     
   )
@@ -293,23 +293,23 @@ declare %unit:test function resolver:test_resolveDOCTYPE() {
 
 declare %unit:test function resolver:test_resolveURI() {
   let $base := file:base-dir()
-  let $catfile := file:resolve-path("test/catalog1.xml", $base)
+  let $catalog := file:resolve-path("test/catalog1.xml", $base)
   let $exampledtd := file:path-to-uri(file:resolve-path("test/example.dtd", $base))
   return (
     let $uri := "https://example.org/example-v1.dtd"
-    let $result := resolver:resolveURI($uri, $catfile)
+    let $result := resolver:resolveURI($uri, $catalog)
     return unit:assert-equals($result, $exampledtd, "uri"),
     
     let $uri := "path/to/example.dtd"
-    let $result := resolver:resolveURI($uri, $catfile)
+    let $result := resolver:resolveURI($uri, $catalog)
     return unit:assert-equals($result, $exampledtd, "uriSuffix"),
     
     let $uri := "C:\file.txt"
-    let $result := resolver:resolveURI($uri, $catfile)
+    let $result := resolver:resolveURI($uri, $catalog)
     return unit:assert-equals($result, "file:///C:/path/file.txt", "rewriteURI"),
     
     let $uri := "http://not-mapped.org/"
-    let $result := resolver:resolveURI($uri, $catfile)
+    let $result := resolver:resolveURI($uri, $catalog)
     return unit:assert-equals($result, $uri, "not mapped")
   )
 };
@@ -317,9 +317,9 @@ declare %unit:test function resolver:test_resolveURI() {
 
 declare %unit:test function resolver:test_parse-xml() {
   let $base := file:base-dir()
-  let $catfile := file:resolve-path("test/catalog1.xml", $base)
+  let $catalog := file:resolve-path("test/catalog1.xml", $base)
   let $examplexml := file:resolve-path("test/example.xml", $base)
-  let $result := resolver:parse-xml($examplexml, $catfile)
+  let $result := resolver:parse-xml($examplexml, $catalog)
   return unit:assert-equals($result, document{<example att="default">expansion from external DTD</example>})
 };
 
