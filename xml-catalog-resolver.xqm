@@ -205,8 +205,6 @@ declare %unit:test function resolver:test_catalogEntries() {
   let $exampledtd := file:path-to-uri(file:resolve-path("test/example.dtd", $base))
   let $entries := resolver:catalogEntries($catfile)
   return (
-    prof:dump($catfile, 'catfile: '),
-    prof:dump($entries, 'entries: '),
     unit:assert-equals($entries[1], <catalog:system systemId="https://example.org/example.dtd" uri="{$exampledtd}"/>),
     unit:assert-equals($entries[2], <catalog:systemSuffix systemIdSuffix="example.dtd" uri="{$exampledtd}"/>),
     unit:assert-equals($entries[3], <catalog:public publicId="-//EXAMPLE//DTD v1//EN" uri="{$exampledtd}"/>),
