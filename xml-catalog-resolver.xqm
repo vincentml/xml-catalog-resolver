@@ -162,13 +162,32 @@ declare function resolver:resolveURI($uri as xs:string, $catalog as xs:string) a
  : @return parsed XML document
  :)
 declare function resolver:parse-xml($xml as xs:string, $catalog as xs:string) as document-node() {
-  let $temp := file:create-temp-file('catalog-resolver', '.xml')
+  let $temp := file:create-temp-file('xml-catalog-resolver', '.xml')
   let $raw := if ($xml castable as xs:anyURI) then unparsed-text($xml) else $xml
   let $resolved := resolver:resolveDOCTYPE($raw, $catalog)
   return (
     file:write-text($temp, $resolved),
     (# db:dtd true #) (# db:intparse false #) (# db:chop false #) { doc($temp) },
     file:delete($temp)
+  )
+};
+
+
+(:~ 
+ : Parse XML using XML Catalog
+ :
+ : @param $xml an XML string or file path to the XML file
+ : @param $catalog Semicolon-separated list of XML catalog files. Absolute file path works best.
+ : @param $path File path to a location where the XML will be written before being parsed in order to control base-uri()
+ :
+ : @return parsed XML document
+ :)
+declare function resolver:parse-xml($xml as xs:string, $catalog as xs:string, $path as xs:string) as document-node() {
+  let $raw := if ($xml castable as xs:anyURI) then unparsed-text($xml) else $xml
+  let $resolved := resolver:resolveDOCTYPE($raw, $catalog)
+  return (
+    file:write-text($path, $resolved),
+    (# db:dtd true #) (# db:intparse false #) (# db:chop false #) { doc($path) }
   )
 };
 
@@ -321,6 +340,21 @@ declare %unit:test function resolver:test_parse-xml() {
   let $examplexml := file:resolve-path("test/example.xml", $base)
   let $result := resolver:parse-xml($examplexml, $catalog)
   return unit:assert-equals($result, document{<example att="default">expansion from external DTD</example>})
+};
+
+
+declare %unit:test function resolver:test_parse-xml3() {
+  let $base := file:base-dir()
+  let $catalog := file:resolve-path("test/catalog1.xml", $base)
+  let $examplexml := file:resolve-path("test/example.xml", $base)
+  let $tempDir := file:create-temp-dir('xml-catalog-resolver', 'test')
+  let $tempFile := $tempDir || 'example.xml'
+  let $result := resolver:parse-xml($examplexml, $catalog, $tempFile)
+  return (
+    unit:assert-equals($result, document{<example att="default">expansion from external DTD</example>}),
+    unit:assert(file:exists($tempFile)),
+    file:delete($tempDir, true())
+  )
 };
 
 
