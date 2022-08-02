@@ -1,5 +1,7 @@
 # XML Catalog Resolver in XQuery
 
+![test status](https://github.com/vincentml/xml-catalog-resolver/actions/workflows/test.yml/badge.svg)
+
 This module provides an XML Catalog Resolver in the XQuery programming language. This module was created using [BaseX](https://basex.org/) version 9.7.3.
 
 ## Purpose
