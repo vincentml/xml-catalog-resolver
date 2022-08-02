@@ -44,14 +44,17 @@ Parameters:
 
 Resolves the DOCTYPE declaration in an XML file using the XML Catalog and then parses the XML.
 
-Signature:
+Signatures:
 
     resolver:parse-xml($xml as xs:string, $catalog as xs:string) as document-node()
+
+    resolver:parse-xml($xml as xs:string, $catalog as xs:string, $path as xs:string) as document-node()
 
 Parameters:
 
 - $xml - XML document as a string or a URI to an XML document
 - $catalog - location of the XML Catalog file(s)
+- $path - File path to a location where the XML will be written before being parsed in order to control base-uri()
 
 ## XML Catalog File Location
 
