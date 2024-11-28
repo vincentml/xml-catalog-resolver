@@ -2,7 +2,7 @@
  : This module provides an XML Resolver for OASIS XML Catalogs entirely in XQuery.
  : Use this module to resolve the location a DTD specified in a DOCTYPE before parsing XML.
  : 
- : Tested with BaseX version 9.7.3. 
+ : Tested with BaseX versions 9.7.3 and 11.5
  : May work in other XQuery processors.
  :
  : @author Vincent Lizzi
@@ -167,7 +167,7 @@ declare function resolver:parse-xml($xml as xs:string, $catalog as xs:string) as
   let $resolved := resolver:resolveDOCTYPE($raw, $catalog)
   return (
     file:write-text($temp, $resolved),
-    (# db:dtd true #) (# db:intparse false #) (# db:chop false #) { doc($temp) },
+    (# db:dtd true #) (# db:intparse false #) { doc($temp) },
     file:delete($temp)
   )
 };
@@ -187,7 +187,7 @@ declare function resolver:parse-xml($xml as xs:string, $catalog as xs:string, $p
   let $resolved := resolver:resolveDOCTYPE($raw, $catalog)
   return (
     file:write-text($path, $resolved),
-    (# db:dtd true #) (# db:intparse false #) (# db:chop false #) { doc($path) }
+    (# db:dtd true #) (# db:intparse false #) { doc($path) }
   )
 };
 
