@@ -169,3 +169,50 @@ declare %unit:test function resolverTest:removeExternalDTD() {
   let $result := resolver:removeExternalDTD($example)
   return unit:assert-equals($result, $expected)
 };
+
+
+declare %unit:test function resolverTest:readDOCTYPE () {
+  let $xml := '<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE example SYSTEM "https://example.org/example.dtd"><example/>'
+  let $expected := map{
+    'doctype-system': 'https://example.org/example.dtd'
+  }
+  let $result := resolver:readDOCTYPE($xml)
+  return unit:assert-equals($result, $expected),
+  
+  let $xml := "<?xml version='1.0' encoding='UTF-8'?><!DOCTYPE example SYSTEM 'https://example.org/example.dtd'><example/>"
+  let $expected := map{
+    'doctype-system': 'https://example.org/example.dtd'
+  }
+  let $result := resolver:readDOCTYPE($xml)
+  return unit:assert-equals($result, $expected),
+  
+  let $xml := '<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE example PUBLIC "-//EXAMPLE//DTD v1//EN" "https://example.org/example.dtd"><example/>'
+  let $expected := map{
+    'doctype-public': '-//EXAMPLE//DTD v1//EN',
+    'doctype-system': 'https://example.org/example.dtd'
+  }
+  let $result := resolver:readDOCTYPE($xml)
+  return unit:assert-equals($result, $expected),
+  
+  let $xml := "<?xml version='1.0' encoding='UTF-8'?><!DOCTYPE example PUBLIC '-//EXAMPLE//DTD v1//EN' 'https://example.org/example.dtd'><example/>"
+  let $expected := map{
+    'doctype-public': '-//EXAMPLE//DTD v1//EN',
+    'doctype-system': 'https://example.org/example.dtd'
+  }
+  let $result := resolver:readDOCTYPE($xml)
+  return unit:assert-equals($result, $expected),
+  
+  let $xml := "<?xml version='1.0' encoding='UTF-8'?><example/>"
+  let $expected := map{}
+  let $result := resolver:readDOCTYPE($xml)
+  return unit:assert-equals($result, $expected),
+  
+  let $xml := '<?xml version="1.0" encoding="UTF-8"?><!-- <!DOCTYPE example PUBLIC "-//COMMENTED OUT//DTD v1//EN" "https://example.org/commented-out.dtd"> --><!DOCTYPE example PUBLIC "-//EXAMPLE//DTD v1//EN" "https://example.org/example.dtd"><!-- <!DOCTYPE example PUBLIC "-//COMMENTED OUT//DTD v1//EN" "https://example.org/commented-out.dtd"> --><example/>'
+  let $expected := map{
+    'doctype-public': '-//EXAMPLE//DTD v1//EN',
+    'doctype-system': 'https://example.org/example.dtd'
+  }
+  let $result := resolver:readDOCTYPE($xml)
+  return unit:assert-equals($result, $expected)
+  
+};

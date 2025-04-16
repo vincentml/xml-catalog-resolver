@@ -17,15 +17,22 @@ module namespace resolver = "xml-catalog-resolver";
 
 import module namespace file = "http://expath.org/ns/file";
 
+declare namespace map = "http://www.w3.org/2005/xpath-functions/map";
+
 (:~ Namespace for OASIS XML Catalogs :)
 declare namespace catalog = "urn:oasis:names:tc:entity:xmlns:xml:catalog";
 
 (:~ regular expression to match space characters in XML DOCTYPE :)
 declare variable $resolver:space := '[&#x20;&#x9;&#xD;&#xA;]+';
 
-(:~ regular expression to match the beginning of an XML DOCTYPE up to the root element name :)
-declare variable $resolver:doctype_start := '(<!DOCTYPE' || $resolver:space || '[:_A-Za-z&#xC0;-&#xD6;&#xD8;-&#xF6;&#xF8;-&#x2FF;&#x370;-&#x37D;&#x37F;-&#x1FFF;&#x200C;-&#x200D;&#x2070;-&#x218F;&#x2C00;-&#x2FEF;&#x3001;-&#xD7FF;&#xF900;-&#xFDCF;&#xFDF0;-&#xFFFD;&#x10000;-&#xEFFFF;][:_\.\-0-9A-Za-z&#xb7;&#x0300;-&#x036F;&#x203F;-&#x2040;&#xC0;-&#xD6;&#xD8;-&#xF6;&#xF8;-&#x2FF;&#x370;-&#x37D;&#x37F;-&#x1FFF;&#x200C;-&#x200D;&#x2070;-&#x218F;&#x2C00;-&#x2FEF;&#x3001;-&#xD7FF;&#xF900;-&#xFDCF;&#xFDF0;-&#xFFFD;&#x10000;-&#xEFFFF;]*' || $resolver:space || ')';
+(: regular expression to match Name, which is defined as Name ::= NameStartChar (NameChar)* :)
+declare variable $resolver:name := '[:_A-Za-z&#xC0;-&#xD6;&#xD8;-&#xF6;&#xF8;-&#x2FF;&#x370;-&#x37D;&#x37F;-&#x1FFF;&#x200C;-&#x200D;&#x2070;-&#x218F;&#x2C00;-&#x2FEF;&#x3001;-&#xD7FF;&#xF900;-&#xFDCF;&#xFDF0;-&#xFFFD;&#x10000;-&#xEFFFF;][:_\.\-0-9A-Za-z&#xb7;&#x0300;-&#x036F;&#x203F;-&#x2040;&#xC0;-&#xD6;&#xD8;-&#xF6;&#xF8;-&#x2FF;&#x370;-&#x37D;&#x37F;-&#x1FFF;&#x200C;-&#x200D;&#x2070;-&#x218F;&#x2C00;-&#x2FEF;&#x3001;-&#xD7FF;&#xF900;-&#xFDCF;&#xFDF0;-&#xFFFD;&#x10000;-&#xEFFFF;]*';
 
+(:~ regular expression to match the beginning of an XML DOCTYPE up to the root element name :)
+declare variable $resolver:doctype_start := '(<!DOCTYPE' || $resolver:space || $resolver:name || $resolver:space || ')';
+
+(:~ regular expression to match an XML comment :)
+declare variable $resolver:comment := '<!--((?:[&#x9;&#xA;&#xD;&#x20;-&#x2C;&#x2E;-&#xD7FF;&#xE000;-&#xFFFD;&#x10000;-&#x10FFFF;]|-[&#x9;&#xA;&#xD;&#x20;-&#x2C;&#x2E;-&#xD7FF;&#xE000;-&#xFFFD;&#x10000;-&#x10FFFF;])*)-->';
 
 (:~ 
  : Parse XML Catalog and return a list of all catalog entries with URIs expanded.
@@ -212,3 +219,30 @@ declare function resolver:removeExternalDTD($xml as xs:string) as xs:string {
   return replace($xml, $match, "$1")
 };
 
+
+(:~ 
+ : Read a DOCTYPE from XML and return details of the DOCTYPE
+ : Read the DOCTYPE declaration in an XML file and return the PUBLIC and SYSTEM identifiers if present.
+ : The returned value is a map that may contain keys doctype-public and doctype-system, 
+ : and can be used to provide serialization parameters to functions such as fn:serialize and file:write.
+ : 
+ : @param $xml XML as a string
+ : 
+ : @return a map containing doctype-public and doctype-system if available
+ :
+ : @see https://docs.basex.org/main/Serialization
+ : @see https://docs.basex.org/main/Standard_Functions#fn:serialize
+ : @see https://docs.basex.org/main/File_Functions#file:write
+ :)
+declare function resolver:readDOCTYPE ($xml as xs:string) as map(xs:string, xs:string) {
+  let $quotes := '^"|^''|"$|''$'
+  let $match := $resolver:doctype_start || "(PUBLIC" || $resolver:space || "('[^']*'|""[^""]*"")|SYSTEM)" || $resolver:space || "('[^']*'|""[^""]*"")"
+  let $clean := replace($xml, $resolver:comment, '')
+  let $expand := analyze-string($clean, $match)
+  let $public := $expand//fn:group[@nr="3"]/replace(., '^SYSTEM$|' || $quotes, '')
+  let $system := $expand//fn:group[@nr="4"]/replace(., $quotes, '')
+  return map:merge((
+    if (string-length($public) gt 0) then map{'doctype-public': $public} else (),
+    if (string-length($system) gt 0) then map{'doctype-system': $system} else ()
+  ))
+};

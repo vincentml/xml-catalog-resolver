@@ -58,6 +58,20 @@ Parameters:
 - $catalog - location of the XML Catalog file(s)
 - $path - File path to a location where the XML will be written before being parsed in order to control base-uri()
 
+### readDOCTYPE
+
+Read the DOCTYPE declaration in an XML file and return the PUBLIC and SYSTEM identifiers if present.
+The returned value is a map that may contain keys doctype-public and doctype-system, 
+and can be used to provide serialization parameters to functions such as fn:serialize and file:write.
+
+Signature:
+
+    resolver:readDOCTYPE($xml as xs:string) as map(xs:string, xs:string)
+
+Parameters:
+
+- $xml - XML document as a string
+
 ## XML Catalog File Location
 
 The location of the XML Catalog file should be provided as an absolute file path. Multiple XML Catalog files can be used by providing a semicolon separated list of the file paths.
