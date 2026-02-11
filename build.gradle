@@ -9,7 +9,7 @@ repositories {
   }
 }
 
-def basexVersion = System.getenv('BASEX_VERSION') ?: "11.5"
+def basexVersion = System.getenv('BASEX_VERSION') ?: "12.2"
 
 dependencies {
   runtimeOnly "org.basex:basex:${basexVersion}"
