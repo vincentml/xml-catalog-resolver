@@ -135,6 +135,12 @@ declare %unit:test function resolverTest:parse-xml() {
   let $examplexml := file:resolve-path("example.xml", $base)
   let $result := resolver:parse-xml($examplexml, $catalog)
   return unit:assert-equals($result, document{<example att="default">expansion from external DTD</example>})
+  ,
+  let $base := file:base-dir()
+  let $catalog := file:resolve-path("catalog1.xml", $base)
+  let $examplexml := file:resolve-path("example.xml", $base) => unparsed-text()
+  let $result := resolver:parse-xml($examplexml, $catalog)
+  return unit:assert-equals($result, document{<example att="default">expansion from external DTD</example>})
 };
 
 
